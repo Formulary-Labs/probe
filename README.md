@@ -2,23 +2,31 @@
 
 Validate gemara artifacts from the command line.
 
-```
+```bash
 go install github.com/Formulary-Labs/probe/cmd/probe@latest
 ```
 
-Or download a pre-built binary from the [releases page](https://github.com/Formulary-Labs/probe/releases).
+Or download a pre-built binary from the [releases page](https://github.com/Formulary-Labs/probe/releases) for `linux/amd64`, `darwin/arm64`, `darwin/amd64`, or `windows/amd64`.
 
----
+## What it does
+
+`probe` validates a gemara artifact file against the gemara schema using the same typed loaders as `go-gemara`. It detects the artifact type automatically, runs schema validation, and returns a structured result.
+
+Exit codes are meaningful:
+
+| Code | Meaning |
+|---|---|
+| `0` | All artifacts valid |
+| `1` | One or more artifacts failed validation |
+| `2` | Tool error — unreadable file, missing argument, or internal failure |
+
+This makes `probe` usable as a CI gate: `probe artifact.yaml && proceed` is a complete smoke check.
 
 ## Usage
 
-```
+```bash
 probe [flags] <artifact.yaml> [<artifact2.yaml> ...]
 ```
-
-Exits **0** if all artifacts are valid.  
-Exits **1** if any artifact fails validation.  
-Exits **2** on tool errors (unreadable file, missing argument, etc.).
 
 ### Flags
 
@@ -26,45 +34,32 @@ Exits **2** on tool errors (unreadable file, missing argument, etc.).
 |---|---|---|
 | `--format` | `json` | Output format: `json` or `md` |
 | `--program` | `""` | Program slug for provenance logging |
-| `--quiet` | `false` | Suppress per-artifact output; only exit code |
+| `--quiet` | `false` | Suppress per-artifact output; exit code only |
 | `--version` | — | Print version and exit |
 
 ### Examples
 
 ```bash
 # Validate a single artifact
-probe artifact.yaml
+probe catalog.yaml
 
 # Validate multiple artifacts
 probe catalog.yaml guidance.yaml risk-register.yaml
 
-# Markdown output
+# Markdown output — readable in terminal or CI log
 probe --format md *.yaml
 
-# Validate in a CI script and fail the step on invalid artifacts
-probe --program iso42001 artifact.yaml && echo "valid"
+# Gate a CI step on artifact validity
+probe --program iso42001 catalog.yaml && echo "valid"
 
-# Quiet mode — exit code only (for scripts)
+# Exit code only — for scripts that handle output themselves
 probe --quiet artifact.yaml
-echo $?  # 0 = valid, 1 = invalid
+echo $?
 ```
-
-### GitHub Actions
-
-```yaml
-- name: Validate gemara artifacts
-  run: probe artifact.yaml
-
-# Or validate all YAML files in the artifacts directory
-- name: Validate all gemara artifacts
-  run: probe artifacts/*.yaml
-```
-
----
 
 ## Output
 
-### JSON (default)
+### JSON
 
 ```json
 {
@@ -83,7 +78,7 @@ echo $?  # 0 = valid, 1 = invalid
 }
 ```
 
-### Markdown (`--format md`)
+### Markdown
 
 ```
 # probe results
@@ -92,15 +87,13 @@ echo $?  # 0 = valid, 1 = invalid
 
 | Path | Status | Type | Duration |
 |---|---|---|---|
-| `catalog.yaml` | ✓ valid | ControlCatalog | 12ms |
-| `guidance.yaml` | ✓ valid | GuidanceCatalog | 8ms |
+| `catalog.yaml` | valid | ControlCatalog | 12ms |
+| `guidance.yaml` | valid | GuidanceCatalog | 8ms |
 ```
-
----
 
 ## Supported artifact types
 
-| Type | gemara metadata.type value |
+| Type | `metadata.type` value |
 |---|---|
 | Control Catalog | `ControlCatalog` |
 | Guidance Catalog | `GuidanceCatalog` |
@@ -116,22 +109,33 @@ echo $?  # 0 = valid, 1 = invalid
 | Threat Catalog | `ThreatCatalog` |
 | Vector Catalog | `VectorCatalog` |
 
----
+Type detection is automatic — `probe` reads the `metadata.type` field and selects the appropriate loader.
+
+## CI integration
+
+Add a `probe` validation step before any pipeline step that consumes a gemara artifact.
+
+### GitHub Actions
+
+```yaml
+- name: Validate gemara artifacts
+  run: probe --program ${{ env.PROGRAM }} catalog.yaml
+
+- name: Validate all YAML artifacts in directory
+  run: probe artifacts/*.yaml
+```
+
+### General CI pattern
+
+```bash
+# Validate before running assay
+probe catalog.yaml || exit 1
+assay --framework iso27001 --catalog catalog.yaml --product-source docs/
+```
 
 ## Relationship to gemara-mcp
 
-`probe` is for terminals and CI pipelines — it's a binary you run with clean exit codes.  
-[`gemara-mcp`](https://github.com/gemaraproj/gemara-mcp)'s `validate_gemara_artifact` tool is for AI agents in context.  
-Same underlying validation logic ([go-gemara](https://github.com/gemaraproj/go-gemara)), different callsite.
-
----
-
-## Part of Formulary
-
-`probe` is part of the [Formulary](https://github.com/Formulary-Labs) compliance micro-tools ecosystem.  
-See [CONTRIBUTING.md](https://github.com/Formulary-Labs/.github/blob/main/CONTRIBUTING.md) to contribute.
-
----
+`probe` and [`gemara-mcp`](https://github.com/gemaraproj/gemara-mcp) use the same underlying validation logic from [`go-gemara`](https://github.com/gemaraproj/go-gemara). They serve different callsites: `probe` is for terminals and CI pipelines where clean exit codes matter; `gemara-mcp`'s `validate_gemara_artifact` tool is for AI agents working in context. Use `probe` in automated pipelines, `gemara-mcp` in agent sessions.
 
 ## License
 
