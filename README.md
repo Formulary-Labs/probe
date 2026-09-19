@@ -1,6 +1,6 @@
 # probe
 
-Validate gemara artifacts from the command line.
+Pass it an artifact. Get a structured result and a meaningful exit code. `0` means valid. `1` means fix it. `2` means something broke.
 
 ```bash
 go install github.com/Formulary-Labs/probe/cmd/probe@latest
