@@ -116,7 +116,7 @@ func printJSON(results []validator.Result, _ bool) {
 	}
 }
 
-func printMD(results []validator.Result, _ bool) {
+func printMD(results []validator.Result, verbose bool) {
 	validCount := 0
 	for _, r := range results {
 		if r.Status == validator.Valid {
