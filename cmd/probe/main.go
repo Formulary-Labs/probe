@@ -95,7 +95,7 @@ type Summary struct {
 	Results []validator.Result `json:"results"`
 }
 
-func printJSON(results []validator.Result, verbose bool) {
+func printJSON(results []validator.Result, _ bool) {
 	validCount := 0
 	for _, r := range results {
 		if r.Status == validator.Valid {
@@ -116,7 +116,7 @@ func printJSON(results []validator.Result, verbose bool) {
 	}
 }
 
-func printMD(results []validator.Result, verbose bool) {
+func printMD(results []validator.Result, _ bool) {
 	validCount := 0
 	for _, r := range results {
 		if r.Status == validator.Valid {
